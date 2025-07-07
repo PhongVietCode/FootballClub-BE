@@ -1,0 +1,21 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: footballclub
+  datasource:
+    url: "jdbc:mysql://localhost:3306/footballclub?allowPublicKeyRetrieval=true&useSSL=false"
+    username: root
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+jwt:
+  signerKey: "\"UvnRDnnmqf6GFxaR2ycHZM5Qj4C7r/kkcchiSv+BLmo58gbV9MOiNen9diSKnGw+\\n"
+  valid-duration: 43200 # second
+  refreshable-duration: 36000 #second
