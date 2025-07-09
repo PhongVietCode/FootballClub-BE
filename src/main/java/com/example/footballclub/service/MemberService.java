@@ -93,7 +93,8 @@ public class MemberService {
             throw new AppException(ErrorCode.UNKNOWN_ERROR);
         }
         List<Player> players = member.getPlayers().stream().toList();
-        playerRepository.deleteAllById(players.stream().map(Player::getId).toList());
+        players = players.stream().peek(player -> player.setMember(null)).toList();
+        playerRepository.saveAll(players);
         memberRepository.deleteById(memberId);
     }
 }
