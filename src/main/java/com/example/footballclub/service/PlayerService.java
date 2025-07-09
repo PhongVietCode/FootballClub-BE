@@ -4,6 +4,7 @@ import com.example.footballclub.dto.request.PlayerCreateRequest;
 import com.example.footballclub.dto.request.PlayerListRequest;
 import com.example.footballclub.dto.response.PlayerResponse;
 import com.example.footballclub.entity.*;
+import com.example.footballclub.enums.MemberRole;
 import com.example.footballclub.exception.AppException;
 import com.example.footballclub.exception.ErrorCode;
 import com.example.footballclub.mapper.PlayerMapper;
@@ -27,29 +28,26 @@ import java.util.Optional;
 public class PlayerService {
     PlayerRepository playerRepository;
     ContestRepository contestRepository;
-    OrganizationRepository organizationRepository;
     PlayerMapper playerMapper;
     MemberRepository memberRepository;
 
     public PlayerResponse joinContest(PlayerCreateRequest request) {
+        Contest contest = contestRepository.findById(request.getContestId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
+
+        Member member = null;
         if (request.getMemberId() != null) {
             Optional<Player> player = playerRepository.findByContestIdAndMemberId(request.getContestId(), request.getMemberId());
             if (player.isPresent()) {
                 throw new AppException(ErrorCode.MEMBER_JOINED_CONTEST);
             }
-        }
-        Contest contest = contestRepository.findById(request.getContestId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
-
-        Optional<Member> member = Optional.empty();
-        if (request.getMemberId() != null) {
-            member = memberRepository.findById(request.getMemberId());
+            member = memberRepository.findById(request.getMemberId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_MEMBER));
         }
         Player player = playerMapper.toPlayer(request);
         player.setContest(contest);
-        if (member.isPresent()) {
-            player.setMember(member.get());
-            player.setElo(member.get().getElo());
-            player.setName(member.get().getName());
+        if (member != null) {
+            player.setMember(member);
+            player.setElo(member.getElo());
+            player.setName(member.getName());
         } else {
             player.setElo(request.getElo());
         }
@@ -65,6 +63,9 @@ public class PlayerService {
         List<Member> memberList = memberRepository.findAllById(request.getMemberIds());
         List<Player> players = new ArrayList<>(contest.getPlayers());
         List<PlayerResponse> playerResponses = memberList.stream().map(member -> {
+            if(!member.getRole().equals(MemberRole.MEMBER)){
+                return null;
+            }
             Optional<Player> existingPlayer = playerRepository.findByContestIdAndMemberId(request.getContestId(), member.getId());
             if (existingPlayer.isEmpty()) {
                 Player player = Player.builder()

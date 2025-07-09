@@ -40,5 +40,11 @@ public class MemberController {
         return ApiResponse.<MemberResponse>builder().result(result).build();
     }
 
+    @DeleteMapping("/{memberId}")
+    public ApiResponse<String> deleteMember(@PathVariable String memberId){
+        memberService.deleteMember(memberId);
+        return ApiResponse.<String>builder().result("Delete member successfully").build();
+
+    }
 
 }

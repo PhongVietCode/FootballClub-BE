@@ -6,6 +6,7 @@ import com.example.footballclub.dto.request.MemberUpdateRequest;
 import com.example.footballclub.dto.response.MemberResponse;
 import com.example.footballclub.entity.*;
 import com.example.footballclub.enums.MemberRole;
+import com.example.footballclub.enums.MemberStatus;
 import com.example.footballclub.exception.AppException;
 import com.example.footballclub.exception.ErrorCode;
 import com.example.footballclub.mapper.MemberMapper;
@@ -30,6 +31,9 @@ public class MemberService {
     MemberMapper memberMapper;
     UserRepository userRepository;
     ContestRepository contestRepository;
+    PlayerRepository playerRepository;
+
+    ContestService contestService;
 
     public MemberResponse createMember(MemberCreateRequest request) {
         Organization organization = organizationRepository.findById(
@@ -52,7 +56,6 @@ public class MemberService {
     public MemberResponse updateMember(String id, MemberUpdateRequest request) {
         Member member = memberRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.INVALID_MEMBER));
         memberMapper.update(request, member);
-        member.setRole(MemberRole.valueOf(request.getRole()));
         memberRepository.save(member);
         return memberMapper.toMemberResponse(member);
     }
@@ -83,4 +86,14 @@ public class MemberService {
         return members.stream().map(memberMapper::toMemberResponse).toList();
     }
 
+    @Transactional
+    public void deleteMember(String memberId) {
+        Member member = memberRepository.findById(memberId).orElseThrow(() -> new AppException(ErrorCode.INVALID_MEMBER));
+        if (!member.getRole().equals(MemberRole.MEMBER)) {
+            throw new AppException(ErrorCode.UNKNOWN_ERROR);
+        }
+        List<Player> players = member.getPlayers().stream().toList();
+        playerRepository.deleteAllById(players.stream().map(Player::getId).toList());
+        memberRepository.deleteById(memberId);
+    }
 }

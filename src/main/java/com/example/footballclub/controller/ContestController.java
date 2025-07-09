@@ -3,10 +3,8 @@ package com.example.footballclub.controller;
 import com.example.footballclub.dto.ApiResponse;
 import com.example.footballclub.dto.request.*;
 import com.example.footballclub.dto.response.ContestResponse;
-import com.example.footballclub.dto.response.MemberResponse;
 import com.example.footballclub.dto.response.TeamSplitResponse;
 import com.example.footballclub.service.ContestService;
-import com.example.footballclub.service.MemberService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -41,13 +39,20 @@ public class ContestController {
     }
     @GetMapping("/list")
     public ApiResponse<List<ContestResponse>> getContestList(@RequestParam(required = false) String orgId) {
-        List<ContestResponse> result = contestService.getContestByOrgID(orgId);
+        List<ContestResponse> result = contestService.getContestList(orgId);
         return ApiResponse.<List<ContestResponse>>builder().result(result).build();
     }
     @GetMapping("/{id}")
     public ApiResponse<ContestResponse> getContest(@PathVariable String id) {
-        ContestResponse result = contestService.getContestById(id);
+        ContestResponse result = contestService.getContestDetail(id);
         return ApiResponse.<ContestResponse>builder().result(result).build();
+    }
+
+    @DeleteMapping("/{contestId}")
+    public ApiResponse<String> deleteContestById(@PathVariable String contestId){
+        contestService.deleteContest(contestId);
+        return ApiResponse.<String>builder().result("Deleted successfully").build();
+
     }
 
 }

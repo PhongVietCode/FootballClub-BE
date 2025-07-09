@@ -3,12 +3,11 @@ package com.example.footballclub.service;
 
 import com.example.footballclub.dto.request.ContestCreateRequest;
 import com.example.footballclub.dto.request.ContestUpdateRequest;
-import com.example.footballclub.dto.request.TeamSplitRequest;
 import com.example.footballclub.dto.response.ContestResponse;
-import com.example.footballclub.dto.response.PlayerResponse;
-import com.example.footballclub.dto.response.TeamResponse;
 import com.example.footballclub.dto.response.TeamSplitResponse;
 import com.example.footballclub.entity.*;
+import com.example.footballclub.enums.MemberRole;
+import com.example.footballclub.enums.MemberStatus;
 import com.example.footballclub.enums.PlayerStatus;
 import com.example.footballclub.enums.TeamColor;
 import com.example.footballclub.exception.AppException;
@@ -24,7 +23,6 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 
@@ -39,45 +37,36 @@ public class ContestService {
     PlayerRepository playerRepository;
     AddressRepository addressRepository;
     ContestMapper contestMapper;
-    TeamMapper teamMapper;
     PlayerMapper playerMapper;
 
+    @Transactional
     public ContestResponse createContest(ContestCreateRequest request) {
-        Organization organization = organizationRepository.findById(request.getOrgId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_ORGANIZATION));
         Address address = addressRepository.findById(request.getAddressId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_ADDRESS));
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Optional<Member> member = memberRepository.findByUserIdAndOrganizationId(user.getId(), request.getOrgId());
-        if (member.isEmpty()) {
+        Optional<Member> member = memberRepository.findById(request.getMemberId());
+        if (member.isEmpty() || !member.get().getStatus().equals(MemberStatus.ACTIVE)) {
             throw new AppException(ErrorCode.INVALID_MEMBER);
         }
-        Contest contest = contestMapper.toContest(request);
+        if (member.get().getRole().equals(MemberRole.MEMBER)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        Contest contest = contestMapper.mapToContest(request, member.get(), address, member.get().getOrganization());
         if (request.getPlayers() != null) {
             List<Player> players = playerRepository.findAllById(request.getPlayers());
             contest.setPlayers(players);
         }
-        contest.setMember(member.get());
-        contest.setAddress(address);
-        contest.setOrganization(organization);
         contest = contestRepository.save(contest);
-        ContestResponse contestResponse = contestMapper.toContestResponse(contest);
-        contestResponse.setAddress(address.getAddress());
-        contestResponse.setAddressName(address.getName());
-        return contestResponse;
+        return contestMapper.mapToContestResponse(contest);
     }
 
-    public ContestResponse updateContest(String id, ContestUpdateRequest request) {
-        Contest contest = contestRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
+//    TODO: make sure updater is valid ???
+    public ContestResponse updateContest(String contestId, ContestUpdateRequest request) {
+        Contest contest = contestRepository.findById(contestId).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
         List<Team> teams = new ArrayList<>();
         var splittedTeams = request.getTeamSplitted();
 
         for (var team : splittedTeams) {
             List<Player> players = playerRepository.findAllById(team.getPlayerIds());
-            Team newTeam = Team.builder()
-                    .contest(contest)
-                    .color(team.getColor())
-                    .totalElo(team.getTotalElo())
-                    .players(new HashSet<>(players))
-                    .build();
+            Team newTeam = Team.builder().contest(contest).color(team.getColor()).totalElo(team.getTotalElo()).players(new HashSet<>(players)).build();
             newTeam = teamRepository.save(newTeam);
             for (Player player : players) {
                 player.setTeam(newTeam);
@@ -91,9 +80,8 @@ public class ContestService {
 
     public List<TeamSplitResponse> splitTeam(String id) {
         Contest contest = contestRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
-        List<Player> players = new ArrayList<>(contest.getPlayers().stream().filter(player ->
-                player.getStatus().equals(PlayerStatus.ACTIVE)
-        ).toList());
+//        Get active players
+        List<Player> players = new ArrayList<>(contest.getPlayers().stream().filter(player -> player.getStatus().equals(PlayerStatus.ACTIVE)).toList());
         Collections.shuffle(players);
         if (players.size() % contest.getTeamCount() != 0) {
             throw new AppException(ErrorCode.TEAM_COUNT_IS_NOT_VALID);
@@ -130,11 +118,7 @@ public class ContestService {
             responses = new ArrayList<>();
             int index = 0;
             for (var res : splittedTeam) {
-                responses.add(TeamSplitResponse.builder()
-                        .color(TeamColor.values()[index++].toString())
-                        .players(res.getPlayers().stream().map(playerMapper::toPlayerResponse).toList())
-                        .totalElo(res.getTotalElo())
-                        .build());
+                responses.add(TeamSplitResponse.builder().color(TeamColor.values()[index++].toString()).players(res.getPlayers().stream().map(playerMapper::toPlayerResponse).toList()).totalElo(res.getTotalElo()).build());
             }
             break;
         }
@@ -162,37 +146,40 @@ public class ContestService {
         helper(playersInTeam, players, index + 1, curElo, minElo, maxElo, teamSize, gap, result);
     }
 
-    public List<ContestResponse> getContestByOrgID(String id) {
-        Organization organization = organizationRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.INVALID_ORGANIZATION));
-        return organization.getContests().stream().map(contest -> {
-            ContestResponse contestResponse = contestMapper.toContestResponse(contest);
-            contestResponse.setAddressName(contest.getAddress().getName());
-            contestResponse.setAddress(contest.getAddress().getAddress());
-            contestResponse.setLocalDateTime(contest.getDateTime());
-            return contestResponse;
-        }).toList();
+    public List<ContestResponse> getContestList(String orgId) {
+        Organization organization = organizationRepository.findById(orgId).orElseThrow(() -> new AppException(ErrorCode.INVALID_ORGANIZATION));
+        return organization.getContests().stream().sorted(Comparator.comparing(Contest::getDateTime).reversed()).map(contestMapper::mapToContestResponse).toList();
     }
 
     @Transactional
-    public ContestResponse getContestById(String id) {
-        Contest contest = contestRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
-        ContestResponse contestResponse = contestMapper.toContestResponse(contest);
-        contestResponse.setAddressName(contest.getAddress().getName());
-        contestResponse.setAddress(contest.getAddress().getAddress());
-        contestResponse.setLocalDateTime(contest.getDateTime());
+    public ContestResponse getContestDetail(String contestId) {
+        Contest contest = contestRepository.findById(contestId).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
+        ContestResponse contestResponse = contestMapper.mapToContestResponse(contest);
         List<Team> teams = new ArrayList<>(contest.getTeams());
         if (!teams.isEmpty()) {
             List<TeamSplitResponse> teamSplitResponses = new ArrayList<>();
             teams.forEach(team -> {
-                teamSplitResponses.add(TeamSplitResponse.builder()
-                        .color(team.getColor())
-                        .players(team.getPlayers().stream().map(playerMapper::toPlayerResponse).toList())
-                        .totalElo(team.getTotalElo())
-                        .build());
+                teamSplitResponses.add(TeamSplitResponse.builder().color(team.getColor()).players(team.getPlayers().stream().map(playerMapper::toPlayerResponse).toList()).totalElo(team.getTotalElo()).build());
             });
             contestResponse.setTeams(teamSplitResponses);
         }
         return contestResponse;
     }
 
+    @Transactional
+    public void deleteContest(String contestId) {
+//        Delete players -> Delete team -> Delete contest
+        try {
+            Contest contest = contestRepository.findById(contestId).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
+            List<Player> players = contest.getPlayers();
+            playerRepository.deleteAllById(players.stream().map(Player::getId).toList());
+            List<Team> teams = contest.getTeams().stream().toList();
+            teamRepository.deleteAllById(teams.stream().map(Team::getId).toList());
+            contestRepository.deleteById(contestId);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            throw e;
+        }
+
+    }
 }

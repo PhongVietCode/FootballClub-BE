@@ -16,12 +16,13 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ContestCreateRequest {
     @NotNull(message = "ATTRIBUTE_NOT_NULL")
-    String orgId;
+    String memberId;
     @NotNull(message = "ATTRIBUTE_NOT_NULL")
     String addressId;
     @NotNull(message = "ATTRIBUTE_NOT_NULL")
     Integer teamCount;
     @NotNull(message = "ATTRIBUTE_NOT_NULL")
     LocalDateTime dateTime;
+
     List<String> players;
 }

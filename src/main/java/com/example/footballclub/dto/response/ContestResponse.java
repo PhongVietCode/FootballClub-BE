@@ -23,6 +23,6 @@ public class ContestResponse {
     String address;
     String addressName;
     Integer teamCount;
-    LocalDateTime localDateTime;
+    LocalDateTime dateTime;
     List<TeamSplitResponse> teams;
 }

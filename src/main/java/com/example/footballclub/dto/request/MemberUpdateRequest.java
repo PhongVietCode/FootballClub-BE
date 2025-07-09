@@ -18,4 +18,5 @@ public class MemberUpdateRequest {
     Float elo;
     String role;
     String status;
+    String name;
 }

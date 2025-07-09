@@ -4,6 +4,7 @@ import com.example.footballclub.dto.request.MemberCreateRequest;
 import com.example.footballclub.dto.request.MemberUpdateRequest;
 import com.example.footballclub.dto.response.MemberResponse;
 import com.example.footballclub.entity.Member;
+import com.example.footballclub.enums.MemberRole;
 import com.example.footballclub.enums.MemberStatus;
 import com.example.footballclub.exception.AppException;
 import com.example.footballclub.exception.ErrorCode;
@@ -30,6 +31,15 @@ public interface MemberMapper {
         if (status == null) return MemberStatus.ACTIVE;
         try {
             return MemberStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new AppException(ErrorCode.UNKNOWN_ERROR);
+        }
+    }
+
+    default MemberRole mapRole(String role) {
+        if (role == null) return null;
+        try {
+            return MemberRole.valueOf(role);
         } catch (IllegalArgumentException e) {
             throw new AppException(ErrorCode.UNKNOWN_ERROR);
         }
