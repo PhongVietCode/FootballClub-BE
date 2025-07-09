@@ -4,18 +4,13 @@ import com.example.footballclub.dto.request.MemberCreateRequest;
 import com.example.footballclub.dto.request.MemberQueryRequest;
 import com.example.footballclub.dto.request.MemberUpdateRequest;
 import com.example.footballclub.dto.response.MemberResponse;
-import com.example.footballclub.entity.Member;
-import com.example.footballclub.entity.Organization;
-import com.example.footballclub.entity.Role;
-import com.example.footballclub.entity.User;
+import com.example.footballclub.entity.*;
 import com.example.footballclub.enums.MemberRole;
 import com.example.footballclub.exception.AppException;
 import com.example.footballclub.exception.ErrorCode;
 import com.example.footballclub.mapper.MemberMapper;
-import com.example.footballclub.repository.MemberRepository;
-import com.example.footballclub.repository.OrganizationRepository;
-import com.example.footballclub.repository.RoleRepository;
-import com.example.footballclub.repository.UserRepository;
+import com.example.footballclub.repository.*;
+import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,6 +29,7 @@ public class MemberService {
     RoleRepository roleRepository;
     MemberMapper memberMapper;
     UserRepository userRepository;
+    ContestRepository contestRepository;
 
     public MemberResponse createMember(MemberCreateRequest request) {
         Organization organization = organizationRepository.findById(
@@ -61,9 +57,18 @@ public class MemberService {
         return memberMapper.toMemberResponse(member);
     }
 
+    @Transactional
     public List<MemberResponse> getMemberList(MemberQueryRequest request) {
-        Organization organization = organizationRepository.findById(request.getOrgId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_ORGANIZATION));
-        List<Member> members = new ArrayList<>(organization.getMembers());
+        List<Member> members = new ArrayList<>();
+
+        if (request.getOrgId() != null) {
+            Organization organization = organizationRepository.findById(request.getOrgId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_ORGANIZATION));
+            members = new ArrayList<>(organization.getMembers());
+        }
+        if (request.getContestId() != null) {
+            Contest contest = contestRepository.findById(request.getContestId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
+            members = new ArrayList<>(contest.getPlayers().stream().map(Player::getMember).toList());
+        }
         if (request.getRole() != null) {
             members = members.stream().filter(member -> member.getRole().equals(MemberRole.valueOf(request.getRole()))).toList();
         }

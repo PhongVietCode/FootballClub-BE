@@ -14,4 +14,5 @@ public class MemberQueryRequest {
     String orgId;
     String role;
     String name;
+    String contestId;
 }

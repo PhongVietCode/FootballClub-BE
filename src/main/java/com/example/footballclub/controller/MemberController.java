@@ -19,9 +19,12 @@ import java.util.List;
 public class MemberController {
     MemberService memberService;
 
+//    TODO: refactor to optional
     @GetMapping
-    public ApiResponse<List<MemberResponse>> findMember(@RequestParam(required = false, name = "organizationId") String orgId,@RequestParam(required = false, name = "name") String name) {
-        List<MemberResponse> result = memberService.getMemberList(MemberQueryRequest.builder().orgId(orgId).name(name).build());
+    public ApiResponse<List<MemberResponse>> findMember(@RequestParam(required = false, name = "organizationId") String orgId,
+                                                        @RequestParam(required = false, name = "name") String name,
+                                                        @RequestParam(required = false, name = "contestId") String contestId) {
+        List<MemberResponse> result = memberService.getMemberList(MemberQueryRequest.builder().orgId(orgId).name(name).contestId(contestId).build());
         return ApiResponse.<List<MemberResponse>>builder().result(result).build();
     }
 

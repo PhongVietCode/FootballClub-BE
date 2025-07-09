@@ -19,7 +19,7 @@ public class AddressController {
     AddressService addressService;
 
     @PostMapping
-    public ApiResponse<AddressResponse> create(@RequestBody @Valid AddressCreateRequest request) {
+    public ApiResponse<AddressResponse> createAddress(@RequestBody @Valid AddressCreateRequest request) {
         AddressResponse result = addressService.createAddress(request);
         return ApiResponse.<AddressResponse>builder().result(result).build();
     }

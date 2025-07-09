@@ -1,13 +1,9 @@
 package com.example.footballclub.controller;
 
 import com.example.footballclub.dto.ApiResponse;
-import com.example.footballclub.dto.request.MemberCreateRequest;
-import com.example.footballclub.dto.request.MemberUpdateRequest;
 import com.example.footballclub.dto.request.PlayerCreateRequest;
 import com.example.footballclub.dto.request.PlayerListRequest;
-import com.example.footballclub.dto.response.MemberResponse;
 import com.example.footballclub.dto.response.PlayerResponse;
-import com.example.footballclub.service.MemberService;
 import com.example.footballclub.service.PlayerService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -30,8 +26,8 @@ public class PlayerController {
         return ApiResponse.<PlayerResponse>builder().result(result).build();
     }
     @PostMapping("/list")
-    public ApiResponse<List<PlayerResponse>> joinContestByList(@RequestBody @Valid PlayerListRequest request) {
-        List<PlayerResponse> responses = playerService.listToJoinContest(request);
+    public ApiResponse<List<PlayerResponse>> joinContestByPlayerList(@RequestBody @Valid PlayerListRequest request) {
+        List<PlayerResponse> responses = playerService.listPlayerToJoinContest(request);
         return ApiResponse.<List<PlayerResponse>>builder().result(responses).build();
     }
 }

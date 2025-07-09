@@ -4,7 +4,6 @@ import com.example.footballclub.dto.request.PlayerCreateRequest;
 import com.example.footballclub.dto.request.PlayerListRequest;
 import com.example.footballclub.dto.response.PlayerResponse;
 import com.example.footballclub.entity.*;
-import com.example.footballclub.enums.PlayerStatus;
 import com.example.footballclub.exception.AppException;
 import com.example.footballclub.exception.ErrorCode;
 import com.example.footballclub.mapper.PlayerMapper;
@@ -16,9 +15,9 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +32,12 @@ public class PlayerService {
     MemberRepository memberRepository;
 
     public PlayerResponse joinContest(PlayerCreateRequest request) {
+        if (request.getMemberId() != null) {
+            Optional<Player> player = playerRepository.findByContestIdAndMemberId(request.getContestId(), request.getMemberId());
+            if (player.isPresent()) {
+                throw new AppException(ErrorCode.MEMBER_JOINED_CONTEST);
+            }
+        }
         Contest contest = contestRepository.findById(request.getContestId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
 
         Optional<Member> member = Optional.empty();
@@ -54,19 +59,28 @@ public class PlayerService {
     }
 
     @Transactional
-    public List<PlayerResponse> listToJoinContest(PlayerListRequest request) {
+    public List<PlayerResponse> listPlayerToJoinContest(PlayerListRequest request) {
         Contest contest = contestRepository.findById(request.getContestId()).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
 
         List<Member> memberList = memberRepository.findAllById(request.getMemberIds());
-        return memberList.stream().map(member -> {
-            Player player = Player.builder()
-                    .contest(contest)
-                    .elo(member.getElo())
-                    .member(member)
-                    .name(member.getName())
-                    .build();
-            player = playerRepository.save(player);
-            return playerMapper.toPlayerResponse(player);
+        List<Player> players = new ArrayList<>(contest.getPlayers());
+        List<PlayerResponse> playerResponses = memberList.stream().map(member -> {
+            Optional<Player> existingPlayer = playerRepository.findByContestIdAndMemberId(request.getContestId(), member.getId());
+            if (existingPlayer.isEmpty()) {
+                Player player = Player.builder()
+                        .contest(contest)
+                        .elo(member.getElo())
+                        .member(member)
+                        .name(member.getName())
+                        .build();
+                player = playerRepository.save(player);
+                return playerMapper.toPlayerResponse(player);
+            } else {
+                players.remove(existingPlayer.get());
+                return null;
+            }
         }).toList();
+        playerRepository.deleteAllById(players.stream().map(Player::getId).toList());
+        return playerResponses;
     }
 }

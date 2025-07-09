@@ -24,7 +24,8 @@ public enum ErrorCode {
     TEAM_COUNT_IS_NOT_VALID("TEAM_COUNT_IS_NOT_VALID", 1015, "Team count must be divided by number of player", HttpStatus.BAD_REQUEST),
     REQUEST_BODY_MISSING("REQUEST_BODY_MISSING", 1016, "This method needs data in body", HttpStatus.BAD_REQUEST),
     ATTRIBUTE_NOT_NULL("ATTRIBUTE_NOT_NULL", 1017,"{name} should not null", HttpStatus.BAD_REQUEST),
-    DUPLICATED_ORG_NAME("DUPLICATED_ORG_NAME", 1018,"This name is not available", HttpStatus.BAD_REQUEST)
+    DUPLICATED_ORG_NAME("DUPLICATED_ORG_NAME", 1018,"This name is not available", HttpStatus.BAD_REQUEST),
+    MEMBER_JOINED_CONTEST("MEMBER_JOINED_CONTEST", 1019,"This member has joined this contest", HttpStatus.BAD_REQUEST)
     ;
     private int code;
     private String message;
