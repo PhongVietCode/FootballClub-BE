@@ -33,7 +33,6 @@ build/
 .vscode/
 
 # Ignore all YAML files
-*.yaml
 !**/src/main/resources/application.yaml
 !**/src/main/resources/application-dev.yaml
 !**/src/main/resources/application-prod.yaml

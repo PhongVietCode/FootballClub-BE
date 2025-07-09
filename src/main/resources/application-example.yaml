@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: footballclub
+  datasource:
+    url: ""
+    username: ""
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+jwt:
+  signerKey: "" # 32-bit
+  valid-duration: 0 # second
+  refreshable-duration: 0 #second
