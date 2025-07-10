@@ -46,6 +46,8 @@ public class SecurityConfig {
         httpSecurity
                 .authorizeHttpRequests(request -> request.requestMatchers(HttpMethod.POST, POST_PUBLIC_ENDPOINT)
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET,"/health")
+                        .permitAll()
                         .anyRequest()
                         .authenticated());
         //        Config JWT Decoder

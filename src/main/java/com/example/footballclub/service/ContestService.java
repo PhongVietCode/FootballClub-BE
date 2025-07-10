@@ -58,7 +58,6 @@ public class ContestService {
         return contestMapper.mapToContestResponse(contest);
     }
 
-//    TODO: make sure updater is valid ???
     public ContestResponse updateContest(String contestId, ContestUpdateRequest request) {
         Contest contest = contestRepository.findById(contestId).orElseThrow(() -> new AppException(ErrorCode.INVALID_CONTEST));
         List<Team> teams = new ArrayList<>();
